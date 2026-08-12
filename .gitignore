@@ -1,0 +1,14 @@
+/artifacts/
+/bin/
+/build/
+/dist/
+/output/
+/.playwright-cli/
+/data/
+/logs/
+.env
+.env.*
+*.pem
+*.key
+*.tmp
+.DS_Store

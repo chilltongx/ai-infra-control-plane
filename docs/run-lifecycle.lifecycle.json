@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Experiment Run Lifecycle",
+    "subtitle": "Observed execution state, desired cancellation, lease loss, and bounded retry",
+    "output": "docs/run-lifecycle.html",
+    "viewBox": [980, 680]
+  },
+  "lanes": [
+    { "id": "main", "label": "Happy path" },
+    { "id": "control", "label": "Desired state" },
+    { "id": "recovery", "label": "Recovery loop" },
+    { "id": "terminal", "label": "Terminal outcomes" }
+  ],
+  "states": [
+    { "id": "queued", "type": "start", "label": "Queued", "sublabel": "eligible run", "lane": "main", "col": 0, "step": "01", "tag": "run" },
+    { "id": "leased", "type": "active", "label": "Leased", "sublabel": "token + fence", "lane": "main", "col": 1, "step": "02", "tag": "attempt" },
+    { "id": "running", "type": "active", "label": "Running", "sublabel": "heartbeats", "lane": "main", "col": 2, "step": "03", "tag": "attempt" },
+    { "id": "finalizing", "type": "decision", "label": "Finalizing", "sublabel": "verify artifacts", "lane": "main", "col": 3, "step": "04", "tag": "commit" },
+    { "id": "succeeded", "type": "success", "label": "Succeeded", "sublabel": "metrics indexed", "lane": "main", "col": 4, "step": "05", "tag": "terminal" },
+    { "id": "cancelling", "type": "waiting", "label": "Cancelling", "sublabel": "desired=CANCEL", "lane": "control", "col": 0, "tag": "cooperative" },
+    { "id": "retrywait", "type": "waiting", "label": "Retry Wait", "sublabel": "bounded backoff", "lane": "recovery", "col": 2, "yOffset": 70, "tag": "new attempt" },
+    { "id": "cancelled", "type": "failure", "label": "Cancelled", "sublabel": "stop confirmed", "lane": "terminal", "col": 0, "tag": "terminal" },
+    { "id": "failed", "type": "failure", "label": "Failed", "sublabel": "budget exhausted", "lane": "terminal", "col": 2, "tag": "terminal" }
+  ],
+  "transitions": [
+    { "from": "running", "to": "cancelling", "label": "cancel", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [402, 202] },
+    { "from": "cancelling", "to": "cancelled", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight" },
+    { "from": "running", "to": "retrywait", "label": "lease expired", "variant": "dashed", "fromSide": "bottom", "toSide": "left", "route": "bottom-channel", "channelY": 390 },
+    { "from": "retrywait", "to": "queued", "label": "backoff elapsed", "variant": "emphasis", "fromSide": "left", "toSide": "bottom", "route": "left-channel", "channelX": 48 },
+    { "from": "retrywait", "to": "failed", "label": "budget exhausted", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [710, 420] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Lease Fence", "items": ["Every claim increments the run fence", "Every mutation carries attempt, token, and fence"] },
+    { "dot": "amber", "title": "Retry", "items": ["A retry always creates a fresh attempt", "SGLang, K8s, and agent-runner retries stay disabled"] },
+    { "dot": "rose", "title": "Cancellation", "items": ["Desired and observed state remain separate", "Late success is audited but cannot overwrite cancellation"] }
+  ]
+}

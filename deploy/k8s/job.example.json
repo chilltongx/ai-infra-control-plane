@@ -1,0 +1,104 @@
+{
+  "apiVersion": "batch/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "aicp-launch-sglang-gpu-001-44e1740829",
+    "namespace": "experiments",
+    "labels": {
+      "ai-infra.chilltongx.dev/launch-id": "launch-sglang-gpu-001",
+      "ai-infra.chilltongx.dev/worker-id": "k8s-aicp-launch-sglang-gpu-001-44e1740829",
+      "app.kubernetes.io/component": "experiment-worker",
+      "app.kubernetes.io/managed-by": "ai-infra-control-plane",
+      "app.kubernetes.io/name": "ai-infra-worker",
+      "workload": "sglang"
+    }
+  },
+  "spec": {
+    "activeDeadlineSeconds": 3600,
+    "backoffLimit": 0,
+    "completions": 1,
+    "parallelism": 1,
+    "template": {
+      "metadata": {
+        "labels": {
+          "ai-infra.chilltongx.dev/launch-id": "launch-sglang-gpu-001",
+          "ai-infra.chilltongx.dev/worker-id": "k8s-aicp-launch-sglang-gpu-001-44e1740829",
+          "app.kubernetes.io/component": "experiment-worker",
+          "app.kubernetes.io/managed-by": "ai-infra-control-plane",
+          "app.kubernetes.io/name": "ai-infra-worker",
+          "workload": "sglang"
+        }
+      },
+      "spec": {
+        "automountServiceAccountToken": false,
+        "enableServiceLinks": false,
+        "restartPolicy": "Never",
+        "nodeSelector": {
+          "accelerator": "nvidia"
+        },
+        "containers": [
+          {
+            "name": "worker",
+            "image": "ghcr.io/chilltongx/ai-infra-worker:v0.1.0",
+            "imagePullPolicy": "IfNotPresent",
+            "command": [
+              "/usr/local/bin/worker"
+            ],
+            "args": [
+              "--one-shot",
+              "--id",
+              "k8s-aicp-launch-sglang-gpu-001-44e1740829",
+              "--name",
+              "k8s-aicp-launch-sglang-gpu-001-44e1740829",
+              "--adapter",
+              "sglang.serving-benchmark",
+              "--artifacts",
+              "/artifacts",
+              "--lease-ttl",
+              "45s",
+              "--claim-wait",
+              "20s",
+              "--labels",
+              "accelerator=nvidia,os=linux"
+            ],
+            "env": [
+              {
+                "name": "CONTROL_PLANE_URL",
+                "value": "https://controlplane.example.internal"
+              },
+              {
+                "name": "CONTROL_PLANE_API_TOKEN",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "control-plane-api",
+                    "key": "token"
+                  }
+                }
+              }
+            ],
+            "resources": {
+              "limits": {
+                "nvidia.com/gpu": "1"
+              },
+              "requests": {
+                "nvidia.com/gpu": "1"
+              }
+            },
+            "volumeMounts": [
+              {
+                "name": "artifacts",
+                "mountPath": "/artifacts"
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "artifacts",
+            "emptyDir": {}
+          }
+        ]
+      }
+    }
+  }
+}

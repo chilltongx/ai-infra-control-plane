@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ForgeGrid V0 Architecture",
+    "subtitle": "Turn heterogeneous personal GPU machines into one reliable experiment grid",
+    "output": "docs/control-plane-architecture.html",
+    "viewBox": [1380, 820]
+  },
+  "components": [
+    { "id": "operator", "type": "frontend", "label": "ForgeGrid Console", "sublabel": "Web + expctl", "pos": [35, 275], "size": [155, 66], "tag": "operator" },
+    { "id": "api", "type": "backend", "label": "Go API", "sublabel": "strict REST contract", "pos": [245, 275], "size": [145, 66] },
+    { "id": "scheduler", "type": "messagebus", "label": "Resource Scheduler", "sublabel": "priority + best fit", "pos": [450, 275], "size": [165, 66], "tag": "atomic owner" },
+    { "id": "state", "type": "database", "label": "Durable State", "sublabel": "runs · attempts · workers", "pos": [450, 75], "size": [165, 66], "tag": "fsync + rename" },
+    { "id": "protocol", "type": "security", "label": "Outbound Protocol", "sublabel": "session · lease · fence", "pos": [680, 275], "size": [165, 66], "tag": "bearer protected" },
+    { "id": "linux", "type": "backend", "label": "Linux Node", "sublabel": "Go worker + NVIDIA probe", "pos": [920, 90], "size": [175, 66], "tag": "GPU" },
+    { "id": "windows", "type": "backend", "label": "Windows Node", "sublabel": "Go worker + NVIDIA probe", "pos": [920, 275], "size": [175, 66], "tag": "GPU" },
+    { "id": "mac", "type": "backend", "label": "macOS Node", "sublabel": "Go worker · CPU smoke", "pos": [920, 460], "size": [175, 66] },
+    { "id": "executor", "type": "external", "label": "Typed Executors", "sublabel": "SGLang · portable smoke", "pos": [1140, 275], "size": [155, 66], "tag": "no shell" },
+    { "id": "artifacts", "type": "cloud", "label": "Evidence Store", "sublabel": "logs · metrics · SHA-256", "pos": [680, 520], "size": [165, 66], "tag": "local FS V0" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "CONTROL PLANE — schedules and records evidence", "wraps": ["api", "scheduler", "state"] },
+    { "kind": "security-group", "label": "USER-OWNED EXECUTION PLANE — outbound only", "wraps": ["protocol", "linux", "windows", "mac", "executor"] }
+  ],
+  "connections": [
+    { "from": "operator", "to": "api", "label": "submit + inspect", "variant": "emphasis", "labelAt": [218, 355] },
+    { "from": "api", "to": "scheduler", "label": "typed run", "variant": "emphasis" },
+    { "from": "scheduler", "to": "state", "label": "atomic reservation", "fromSide": "top", "toSide": "bottom" },
+    { "from": "protocol", "to": "scheduler", "label": "heartbeat + claim ↔ allocation", "variant": "emphasis", "labelAt": [648, 355] },
+    { "from": "linux", "to": "protocol", "label": "GPU snapshot", "variant": "dashed" },
+    { "from": "windows", "to": "protocol", "variant": "dashed" },
+    { "from": "mac", "to": "protocol", "variant": "dashed" },
+    { "from": "windows", "to": "executor", "label": "CUDA_VISIBLE_DEVICES", "variant": "emphasis", "labelAt": [1118, 355] },
+    { "from": "linux", "to": "executor", "variant": "dashed", "fromSide": "right", "toSide": "top", "route": "orthogonal-h" },
+    { "from": "mac", "to": "executor", "variant": "dashed", "fromSide": "right", "toSide": "bottom", "route": "orthogonal-h" },
+    { "from": "executor", "to": "artifacts", "label": "verified result", "variant": "dashed", "fromSide": "bottom", "toSide": "right", "route": "orthogonal-v" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Placement", "items": ["Workers report stable GPU UUIDs and live free VRAM", "Each claim captures an immutable allocation snapshot"] },
+    { "dot": "emerald", "title": "Correctness", "items": ["One active allocation per V0 worker", "Session fencing, leases, and monotonic fences reject stale actors"] },
+    { "dot": "amber", "title": "V0 Boundary", "items": ["One physical node runs one worker/executor", "JSON state is single-process; PostgreSQL and CAS come next"] }
+  ]
+}

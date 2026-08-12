@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:,">
+  <title>ForgeGrid</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <header class="toolbar">
+    <a class="brand" href="/" aria-label="ForgeGrid home">
+      <span class="brand-mark">F</span>
+      <span><strong>ForgeGrid</strong><small>GPU experiment grid</small></span>
+    </a>
+    <nav aria-label="ForgeGrid views" role="tablist">
+      <button class="nav-item active" id="runs-tab" data-view="runs" role="tab" aria-controls="runs-view" aria-selected="true" tabindex="0">Runs</button>
+      <button class="nav-item" id="nodes-tab" data-view="nodes" role="tab" aria-controls="nodes-view" aria-selected="false" tabindex="-1">Nodes</button>
+    </nav>
+    <div class="toolbar-actions">
+      <span class="health" id="health" aria-live="polite"><i></i> Connecting</span>
+      <button class="icon-button" id="refresh" aria-label="Refresh" title="Refresh">↻</button>
+      <button class="primary-button" id="new-run">New run</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">PERSONAL GPU INFRASTRUCTURE</p>
+        <h1>Your GPUs, one reliable grid.</h1>
+        <p>Send reproducible experiments to your Mac, Windows, and Linux nodes. ForgeGrid preserves placement evidence through disconnects and retries.</p>
+      </div>
+      <div class="hero-orbit" aria-hidden="true">
+        <span class="orbit one"></span><span class="orbit two"></span><span class="core">FG</span>
+      </div>
+    </section>
+
+    <section class="summary" aria-label="Run summary">
+      <article><span class="summary-icon cyan">◫</span><div><small>Queued</small><strong id="queued-count">0</strong></div></article>
+      <article><span class="summary-icon violet">▶</span><div><small>Active</small><strong id="active-count">0</strong></div></article>
+      <article><span class="summary-icon green">✓</span><div><small>Succeeded</small><strong id="success-count">0</strong></div></article>
+      <article><span class="summary-icon red">!</span><div><small>Failed</small><strong id="failed-count">0</strong></div></article>
+      <article><span class="summary-icon amber">◆</span><div><small>Nodes online</small><strong id="node-count">0</strong></div></article>
+    </section>
+
+    <section class="workspace" id="runs-view" role="tabpanel" aria-labelledby="runs-tab">
+      <div class="section-heading">
+        <div><p class="eyebrow">LIVE QUEUE</p><h2>Recent runs</h2></div>
+        <label class="search" for="run-filter"><span aria-hidden="true">⌕</span><span class="visually-hidden">Search runs</span><input id="run-filter" type="search" placeholder="Search by ID or adapter"></label>
+      </div>
+      <div class="table-shell">
+        <table>
+          <thead><tr><th>Run</th><th>Recipe</th><th>Status</th><th>Request</th><th>Last allocation</th><th>Attempts</th><th>Updated</th><th><span class="visually-hidden">Inspect</span></th></tr></thead>
+          <tbody id="run-rows"></tbody>
+        </table>
+        <div class="empty" id="runs-empty"><span>◇</span><h3>No experiments yet</h3><p>Submit a typed recipe to see lease scheduling in motion.</p><button class="secondary-button" data-open-run>Submit first run</button></div>
+      </div>
+    </section>
+
+    <section class="workspace hidden" id="nodes-view" role="tabpanel" aria-labelledby="nodes-tab" hidden>
+      <div class="section-heading"><div><p class="eyebrow">EXECUTION GRID</p><h2>Nodes</h2></div></div>
+      <div class="node-grid" id="node-grid"></div>
+      <div class="empty" id="nodes-empty"><span>⌁</span><h3>No nodes registered</h3><p>Start a ForgeGrid worker on a computer to register it as a node.</p></div>
+    </section>
+  </main>
+
+  <dialog id="run-dialog">
+    <form method="dialog" id="run-form">
+      <div class="dialog-heading"><div><p class="eyebrow">NEW EXPERIMENT RUN</p><h2>Choose a typed recipe</h2></div><button class="icon-button" id="close-dialog" type="button" aria-label="Close">×</button></div>
+      <label>Experiment name<input name="experiment_name" required value="SGLang benchmark"></label>
+      <div class="form-grid">
+        <label>Adapter<select name="adapter"><option value="demo.sleep">demo.sleep</option><option value="sglang.serving-benchmark">sglang.serving-benchmark</option></select></label>
+        <label>Max attempts<input name="max_attempts" type="number" min="1" max="10" value="2"></label>
+      </div>
+      <fieldset class="resource-fields">
+        <legend>GPU requirements</legend>
+        <div class="form-grid">
+          <label>GPU count<input name="gpu_count" type="number" min="0" max="16" step="1" value="0" inputmode="numeric"></label>
+          <label>Minimum free memory per GPU<input name="min_free_gpu_memory_bytes" type="number" min="0" step="0.25" value="0" inputmode="decimal" aria-describedby="gpu-memory-help"><small id="gpu-memory-help">Enter GiB; ForgeGrid converts it to bytes</small></label>
+        </div>
+      </fieldset>
+      <label>Command arguments<input name="command" value="2s" aria-describedby="command-help"><small id="command-help">demo.sleep: duration such as 2s. SGLang: safe CLI arguments only.</small></label>
+      <label>Required node labels<input name="labels" placeholder="os=windows,accelerator=nvidia"></label>
+      <p class="form-error" id="form-error" role="alert"></p>
+      <div class="dialog-actions"><button class="secondary-button" id="cancel-dialog" type="button">Cancel</button><button class="primary-button" id="submit-run" type="submit">Submit run</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="auth-dialog" aria-labelledby="auth-title">
+    <form id="auth-form">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">FORGEGRID ACCESS</p><h2 id="auth-title">Connect securely</h2></div>
+        <button class="icon-button" id="close-auth-dialog" type="button" aria-label="Close">×</button>
+      </div>
+      <p class="dialog-copy">Enter the API bearer token for this browser tab. It is kept only in session storage and removed when authentication fails.</p>
+      <input type="text" name="username" value="forgegrid" autocomplete="username" class="visually-hidden" tabindex="-1" aria-hidden="true">
+      <label>API token<input id="api-token" name="api_token" type="password" required autocomplete="current-password" spellcheck="false"></label>
+      <p class="form-error" id="auth-form-error" role="alert"></p>
+      <div class="dialog-actions"><button class="secondary-button" id="cancel-auth-dialog" type="button">Cancel</button><button class="primary-button" type="submit">Connect</button></div>
+    </form>
+  </dialog>
+
+  <aside class="inspector" id="inspector" role="dialog" aria-modal="false" aria-labelledby="inspector-title" aria-hidden="true" tabindex="-1" inert>
+    <div class="inspector-heading"><div><p class="eyebrow">RUN INSPECTOR</p><h2 id="inspector-title">Run</h2></div><button class="icon-button" id="close-inspector" type="button" aria-label="Close run inspector">×</button></div>
+    <div id="inspector-body"></div>
+  </aside>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
