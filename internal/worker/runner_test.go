@@ -64,10 +64,12 @@ func (p *sequenceProbe) Probe(context.Context) WorkerResources {
 	}
 	return result
 }
-func (*oneShotClient) Start(context.Context, Claim) error                           { return nil }
-func (*oneShotClient) AttemptHeartbeat(context.Context, Claim, time.Duration) error { return nil }
-func (*oneShotClient) Complete(context.Context, Claim, Completion) error            { return nil }
-func (c *oneShotClient) RunState(context.Context, string) (string, error)           { return c.runState, nil }
+func (*oneShotClient) Start(context.Context, Claim) error { return nil }
+func (*oneShotClient) AttemptHeartbeat(_ context.Context, _ Claim, extendBy time.Duration) (time.Time, error) {
+	return time.Now().Add(extendBy), nil
+}
+func (*oneShotClient) Complete(context.Context, Claim, Completion) error  { return nil }
+func (c *oneShotClient) RunState(context.Context, string) (string, error) { return c.runState, nil }
 
 func TestOneShotWorkerClaimsOnceAndExitsWhenQueueIsEmpty(t *testing.T) {
 	t.Parallel()
@@ -249,7 +251,7 @@ func TestMonitorReportsOperatorCancellation(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	err = runner.monitor(ctx, cancel, Claim{RunID: "run-one"}, make(chan struct{}))
+	err = runner.monitor(ctx, cancel, Claim{RunID: "run-one"})
 	if !errors.Is(err, errCancellationRequested) {
 		t.Fatalf("monitor error = %v", err)
 	}

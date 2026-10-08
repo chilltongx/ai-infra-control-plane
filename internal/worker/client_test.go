@@ -123,8 +123,12 @@ func TestAttemptHeartbeatSendsLeaseExtension(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := client.AttemptHeartbeat(context.Background(), Claim{AttemptID: "a1", RunID: "r1", Fence: 2, LeaseToken: "token"}, 10*time.Minute); err != nil {
+	expiresAt, err := client.AttemptHeartbeat(context.Background(), Claim{AttemptID: "a1", RunID: "r1", Fence: 2, LeaseToken: "token"}, 10*time.Minute)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if want := time.Date(2026, time.August, 12, 0, 10, 0, 0, time.UTC); !expiresAt.Equal(want) {
+		t.Fatalf("lease expiry = %s, want %s", expiresAt, want)
 	}
 }
 
