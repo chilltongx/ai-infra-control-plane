@@ -6,7 +6,23 @@ ForgeGrid 是一个用 Go 编写的、小型但真实可用的 GPU 实验控制�
 
 > V0 的部署假设是 **一台 node 运行一个 ForgeGrid worker，并且一个 worker 同时只持有一个 allocation**。不要在同一台 GPU 主机上启动多个 worker 进程；V0 不会跨进程协调同一块物理 GPU。
 
-## V0 已实现
+## 控制台预览
+
+![ForgeGrid 控制台：CPU 演示任务的排队、运行和完成状态](docs/console-demo.png)
+
+截图来自本地 `demo.sleep` 实例：一个 macOS worker、两个已完成任务、一个运行中任务和一个排队任务；不代表 GPU 性能测试结果。
+
+## 从这里开始
+
+- **运行一个实验**：用 CLI 或 Web 控制台提交任务，worker 主动领取并执行。
+- **看清资源分配**：按 GPU 数量与空闲显存匹配资源，保留每次 attempt 的分配记录。
+- **追踪失败与重试**：通过租约、fence、事件和结果文件定位执行过程。
+
+[CPU 快速开始](#quick-startcpu-smoke) · [GPU 资源匹配](#quick-startgpu-placement) · [HTTP API](docs/api.md) · [当前边界](#v0-明确边界)
+
+<details>
+<summary>展开 V0 完整特性</summary>
+
 
 - Go REST API、`expctl` CLI 和内嵌 Web 控制台
 - Experiment → Run → Attempt 的可追溯执行模型
@@ -30,9 +46,17 @@ ForgeGrid 是一个用 Go 编写的、小型但真实可用的 GPU 实验控制�
 
 `demo.sleep` 是跨平台验证路径；`sglang.serving-benchmark` 是当前真实 GPU 工作负载集成。ForgeGrid 不接受任意 shell 字符串，worker 只执行代码中注册并验证过的 recipe。
 
+</details>
+
 ## Quick Start：CPU smoke
 
 需要 Go 1.26 或更新版本。`demo.sleep` worker 本身可在 macOS、Linux 或 Windows 运行；下面的可复制命令使用 Bash/Zsh 语法，PowerShell 需要改写续行、环境变量和 JSON 取值部分。
+
+首次使用先克隆仓库：
+
+```bash
+git clone https://github.com/chilltongx/ai-infra-control-plane.git
+```
 
 终端 1，启动控制面：
 
